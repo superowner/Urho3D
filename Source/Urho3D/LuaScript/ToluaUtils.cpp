@@ -165,16 +165,6 @@ template <> void* ToluaToVector<SharedPtr<VertexBuffer> >(lua_State* L, int narg
     return &result;
 }
 
-namespace Urho3D
-{
-
-template <> const VariantValue* Variant::Get<const VariantValue*>() const
-{
-    return &value_;
-}
-
-}
-
 void ToluaToVariant(lua_State* L, int narg, void* def, Variant& variant)
 {
     switch (lua_type(L, narg))   // Use the type of lua object to determine the final variant type
@@ -373,7 +363,7 @@ void ToluaPushVariant(lua_State* L, const Variant* variant, const char* type)
     case VAR_INTRECT:
     case VAR_INTVECTOR2:
     case VAR_INTVECTOR3:
-        tolua_pushusertype(L, (void*)variant->Get<const VariantValue*>(), variant->GetTypeName().CString());
+        tolua_pushusertype(L, (void*)variant->GetInternalVariantValue(), variant->GetTypeName().CString());
         break;
 
     case VAR_STRING:
@@ -407,15 +397,15 @@ void ToluaPushVariant(lua_State* L, const Variant* variant, const char* type)
         break;
 
     case VAR_MATRIX3:
-        tolua_pushusertype(L, variant->Get<const VariantValue*>()->matrix3_, "Matrix3");
+        tolua_pushusertype(L, variant->GetInternalVariantValue()->matrix3_, "Matrix3");
         break;
 
     case VAR_MATRIX3X4:
-        tolua_pushusertype(L, variant->Get<const VariantValue*>()->matrix3x4_, "Matrix3x4");
+        tolua_pushusertype(L, variant->GetInternalVariantValue()->matrix3x4_, "Matrix3x4");
         break;
 
     case VAR_MATRIX4:
-        tolua_pushusertype(L, variant->Get<const VariantValue*>()->matrix4_, "Matrix4");
+        tolua_pushusertype(L, variant->GetInternalVariantValue()->matrix4_, "Matrix4");
         break;
 
     default:

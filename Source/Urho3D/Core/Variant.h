@@ -31,6 +31,7 @@
 #include "../Math/StringHash.h"
 
 #include <typeinfo>
+#include <type_traits>
 
 namespace Urho3D
 {
@@ -70,6 +71,23 @@ enum VariantType
     VAR_CUSTOM_STACK,
     MAX_VAR_TYPES
 };
+
+/// Remove all references and qualifiers from variant type.
+template <class T>
+using DecayVariantType = std::remove_cv_t<std::remove_reference_t<T>>;
+
+/// Helper struct for Variant.
+template <class T>
+struct VariantTypeHelper;
+
+/// Specialize helper struct for specific type.
+#define URHO3D_ADD_VARIANT_TYPE(variantType, type, getter) \
+template <> struct VariantTypeHelper<DecayVariantType<type>> \
+{ \
+    using ReturnType = type; \
+    static VariantType GetVariantType() { return variantType; } \
+    static ReturnType GetConstValue(const Variant& variant) { return variant.getter(); } \
+}
 
 class Variant;
 class VectorBuffer;
@@ -1340,7 +1358,10 @@ public:
     bool IsCustom() const { return type_ == VAR_CUSTOM_HEAP || type_ == VAR_CUSTOM_STACK; }
 
     /// Return the value, template version.
-    template <class T> T Get() const;
+    template <class T> typename VariantTypeHelper<DecayVariantType<T>>::ReturnType Get() const
+    {
+        return VariantTypeHelper<DecayVariantType<T>>::GetConstValue(*this);
+    }
 
     /// Return a pointer to a modifiable buffer or null on type mismatch.
     PODVector<unsigned char>* GetBufferPtr()
@@ -1367,6 +1388,9 @@ public:
         }
         return nullptr;
     }
+
+    /// Return a pointer to the underlying structure. Unsafe.
+    const VariantValue* GetInternalVariantValue() const { return &value_; }
 
     /// Return name for variant type.
     static String GetTypeName(VariantType type);
@@ -1401,151 +1425,42 @@ private:
 };
 
 /// Return variant type from type.
-template <typename T> VariantType GetVariantType();
-
-// Return variant type from concrete types
-template <> inline VariantType GetVariantType<int>() { return VAR_INT; }
-
-template <> inline VariantType GetVariantType<unsigned>() { return VAR_INT; }
-
-template <> inline VariantType GetVariantType<long long>() { return VAR_INT64; }
-
-template <> inline VariantType GetVariantType<unsigned long long>() { return VAR_INT64; }
-
-template <> inline VariantType GetVariantType<bool>() { return VAR_BOOL; }
-
-template <> inline VariantType GetVariantType<float>() { return VAR_FLOAT; }
-
-template <> inline VariantType GetVariantType<double>() { return VAR_DOUBLE; }
-
-template <> inline VariantType GetVariantType<Vector2>() { return VAR_VECTOR2; }
-
-template <> inline VariantType GetVariantType<Vector3>() { return VAR_VECTOR3; }
-
-template <> inline VariantType GetVariantType<Vector4>() { return VAR_VECTOR4; }
-
-template <> inline VariantType GetVariantType<Quaternion>() { return VAR_QUATERNION; }
-
-template <> inline VariantType GetVariantType<Color>() { return VAR_COLOR; }
-
-template <> inline VariantType GetVariantType<String>() { return VAR_STRING; }
-
-template <> inline VariantType GetVariantType<StringHash>() { return VAR_INT; }
-
-template <> inline VariantType GetVariantType<PODVector<unsigned char> >() { return VAR_BUFFER; }
-
-template <> inline VariantType GetVariantType<ResourceRef>() { return VAR_RESOURCEREF; }
-
-template <> inline VariantType GetVariantType<ResourceRefList>() { return VAR_RESOURCEREFLIST; }
-
-template <> inline VariantType GetVariantType<VariantVector>() { return VAR_VARIANTVECTOR; }
-
-template <> inline VariantType GetVariantType<StringVector>() { return VAR_STRINGVECTOR; }
-
-template <> inline VariantType GetVariantType<VariantMap>() { return VAR_VARIANTMAP; }
-
-template <> inline VariantType GetVariantType<Rect>() { return VAR_RECT; }
-
-template <> inline VariantType GetVariantType<IntRect>() { return VAR_INTRECT; }
-
-template <> inline VariantType GetVariantType<IntVector2>() { return VAR_INTVECTOR2; }
-
-template <> inline VariantType GetVariantType<IntVector3>() { return VAR_INTVECTOR3; }
-
-template <> inline VariantType GetVariantType<Matrix3>() { return VAR_MATRIX3; }
-
-template <> inline VariantType GetVariantType<Matrix3x4>() { return VAR_MATRIX3X4; }
-
-template <> inline VariantType GetVariantType<Matrix4>() { return VAR_MATRIX4; }
-
-// Specializations of Variant::Get<T>
-template <> URHO3D_API int Variant::Get<int>() const;
-
-template <> URHO3D_API unsigned Variant::Get<unsigned>() const;
-
-template <> URHO3D_API long long Variant::Get<long long>() const;
-
-template <> URHO3D_API unsigned long long Variant::Get<unsigned long long>() const;
-
-template <> URHO3D_API StringHash Variant::Get<StringHash>() const;
-
-template <> URHO3D_API bool Variant::Get<bool>() const;
-
-template <> URHO3D_API float Variant::Get<float>() const;
-
-template <> URHO3D_API double Variant::Get<double>() const;
-
-template <> URHO3D_API const Vector2& Variant::Get<const Vector2&>() const;
-
-template <> URHO3D_API const Vector3& Variant::Get<const Vector3&>() const;
-
-template <> URHO3D_API const Vector4& Variant::Get<const Vector4&>() const;
-
-template <> URHO3D_API const Quaternion& Variant::Get<const Quaternion&>() const;
-
-template <> URHO3D_API const Color& Variant::Get<const Color&>() const;
-
-template <> URHO3D_API const String& Variant::Get<const String&>() const;
-
-template <> URHO3D_API const Rect& Variant::Get<const Rect&>() const;
-
-template <> URHO3D_API const IntRect& Variant::Get<const IntRect&>() const;
-
-template <> URHO3D_API const IntVector2& Variant::Get<const IntVector2&>() const;
-
-template <> URHO3D_API const IntVector3& Variant::Get<const IntVector3&>() const;
-
-template <> URHO3D_API const PODVector<unsigned char>& Variant::Get<const PODVector<unsigned char>&>() const;
-
-template <> URHO3D_API void* Variant::Get<void*>() const;
-
-template <> URHO3D_API RefCounted* Variant::Get<RefCounted*>() const;
-
-template <> URHO3D_API const Matrix3& Variant::Get<const Matrix3&>() const;
-
-template <> URHO3D_API const Matrix3x4& Variant::Get<const Matrix3x4&>() const;
-
-template <> URHO3D_API const Matrix4& Variant::Get<const Matrix4&>() const;
-
-template <> URHO3D_API ResourceRef Variant::Get<ResourceRef>() const;
-
-template <> URHO3D_API ResourceRefList Variant::Get<ResourceRefList>() const;
-
-template <> URHO3D_API VariantVector Variant::Get<VariantVector>() const;
-
-template <> URHO3D_API StringVector Variant::Get<StringVector>() const;
-
-template <> URHO3D_API VariantMap Variant::Get<VariantMap>() const;
-
-template <> URHO3D_API Vector2 Variant::Get<Vector2>() const;
-
-template <> URHO3D_API Vector3 Variant::Get<Vector3>() const;
-
-template <> URHO3D_API Vector4 Variant::Get<Vector4>() const;
-
-template <> URHO3D_API Quaternion Variant::Get<Quaternion>() const;
-
-template <> URHO3D_API Color Variant::Get<Color>() const;
-
-template <> URHO3D_API String Variant::Get<String>() const;
-
-template <> URHO3D_API Rect Variant::Get<Rect>() const;
-
-template <> URHO3D_API IntRect Variant::Get<IntRect>() const;
-
-template <> URHO3D_API IntVector2 Variant::Get<IntVector2>() const;
-
-template <> URHO3D_API IntVector3 Variant::Get<IntVector3>() const;
-
-template <> URHO3D_API PODVector<unsigned char> Variant::Get<PODVector<unsigned char> >() const;
-
-template <> URHO3D_API Matrix3 Variant::Get<Matrix3>() const;
-
-template <> URHO3D_API Matrix3x4 Variant::Get<Matrix3x4>() const;
-
-template <> URHO3D_API Matrix4 Variant::Get<Matrix4>() const;
+template <typename T> VariantType GetVariantType()
+{
+    return VariantTypeHelper<DecayVariantType<T>>::GetVariantType();
+}
 
 // Implementations
+URHO3D_ADD_VARIANT_TYPE(VAR_INT, int, GetInt);
+URHO3D_ADD_VARIANT_TYPE(VAR_INT, unsigned, GetUInt);
+URHO3D_ADD_VARIANT_TYPE(VAR_INT, StringHash, GetStringHash);
+URHO3D_ADD_VARIANT_TYPE(VAR_BOOL, bool, GetBool);
+URHO3D_ADD_VARIANT_TYPE(VAR_FLOAT, float, GetFloat);
+URHO3D_ADD_VARIANT_TYPE(VAR_VECTOR2, const Vector2&, GetVector2);
+URHO3D_ADD_VARIANT_TYPE(VAR_VECTOR3, const Vector3&, GetVector3);
+URHO3D_ADD_VARIANT_TYPE(VAR_VECTOR4, const Vector4&, GetVector4);
+URHO3D_ADD_VARIANT_TYPE(VAR_QUATERNION, const Quaternion&, GetQuaternion);
+URHO3D_ADD_VARIANT_TYPE(VAR_COLOR, const Color&, GetColor);
+URHO3D_ADD_VARIANT_TYPE(VAR_STRING, const String&, GetString);
+URHO3D_ADD_VARIANT_TYPE(VAR_BUFFER, const PODVector<unsigned char>&, GetBuffer);
+URHO3D_ADD_VARIANT_TYPE(VAR_VOIDPTR, void*, GetVoidPtr);
+URHO3D_ADD_VARIANT_TYPE(VAR_RESOURCEREF, const ResourceRef&, GetResourceRef);
+URHO3D_ADD_VARIANT_TYPE(VAR_RESOURCEREFLIST, const ResourceRefList&, GetResourceRefList);
+URHO3D_ADD_VARIANT_TYPE(VAR_VARIANTVECTOR, const VariantVector&, GetVariantVector);
+URHO3D_ADD_VARIANT_TYPE(VAR_VARIANTMAP, const VariantMap&, GetVariantMap);
+URHO3D_ADD_VARIANT_TYPE(VAR_INTRECT, const IntRect&, GetIntRect);
+URHO3D_ADD_VARIANT_TYPE(VAR_INTVECTOR2, const IntVector2&, GetIntVector2);
+URHO3D_ADD_VARIANT_TYPE(VAR_PTR, RefCounted*, GetPtr);
+URHO3D_ADD_VARIANT_TYPE(VAR_MATRIX3, const Matrix3&, GetMatrix3);
+URHO3D_ADD_VARIANT_TYPE(VAR_MATRIX3X4, const Matrix3x4&, GetMatrix3x4);
+URHO3D_ADD_VARIANT_TYPE(VAR_MATRIX4, const Matrix4&, GetMatrix4);
+URHO3D_ADD_VARIANT_TYPE(VAR_DOUBLE, double, GetDouble);
+URHO3D_ADD_VARIANT_TYPE(VAR_STRINGVECTOR, const StringVector&, GetStringVector);
+URHO3D_ADD_VARIANT_TYPE(VAR_RECT, const Rect&, GetRect);
+URHO3D_ADD_VARIANT_TYPE(VAR_INTVECTOR3, const IntVector3&, GetIntVector3);
+URHO3D_ADD_VARIANT_TYPE(VAR_INT64, long long, GetInt64);
+URHO3D_ADD_VARIANT_TYPE(VAR_INT64, unsigned long long, GetUInt64);
+
 template <class T> T* CustomVariantValue::GetValuePtr()
 {
     if (IsType<T>())
