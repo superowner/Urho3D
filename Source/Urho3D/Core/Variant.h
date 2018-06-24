@@ -75,7 +75,7 @@ enum VariantType
 
 /// Remove all references and qualifiers from variant type.
 template <class T>
-using DecayVariantType = std::remove_cv_t<std::remove_reference_t<T>>;
+using DecayVariantType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 
 /// Helper struct for Variant.
 template <class T>
