@@ -1839,7 +1839,7 @@ void UI::HandleTouchEnd(StringHash eventType, VariantMap& eventData)
     pos.y_ = int(pos.y_ / uiScale_);
 
     // Get the touch index
-    auto touchId = TOUCHID_MASK(eventData[P_TOUCHID].GetInt());
+    const MouseButton touchId = TOUCHID_MASK(eventData[P_TOUCHID].GetInt());
 
     // Transmit hover end to the position where the finger was lifted
     WeakPtr<UIElement> element(GetElementAt(pos));
@@ -1847,7 +1847,7 @@ void UI::HandleTouchEnd(StringHash eventType, VariantMap& eventData)
     // Clear any drag events that were using the touch id
     for (auto i = touchDragElements_.Begin(); i != touchDragElements_.End();)
     {
-        auto touches = i->second_;
+        const MouseButtonFlags touches = i->second_;
         if (touches.Test(touchId))
             i = touchDragElements_.Erase(i);
         else
@@ -2069,7 +2069,8 @@ IntVector2 UI::SumTouchPositions(UI::DragData* dragData, const IntVector2& oldSe
         auto* input = GetSubsystem<Input>();
         for (unsigned i = 0; (1u << i) <= (unsigned)buttons; i++)
         {
-            if (buttons.Test(MouseButton(1u << i)))
+            auto mouseButton = static_cast<MouseButton>(1u << i);
+            if (buttons.Test(mouseButton))
             {
                 TouchState* ts = input->GetTouch((unsigned)i);
                 if (!ts)

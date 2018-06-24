@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Container/FlagSet.h"
 #include "../Container/HashMap.h"
 #include "../Container/Ptr.h"
 #include "../Math/Color.h"
@@ -367,6 +368,12 @@ public:
         *this = (long long)value;
     }
 
+    /// Assign from flag set.
+    template <class T> Variant(FlagSet<T> value)   // NOLINT(google-explicit-constructor)
+    {
+        *this = value;
+    }
+
     /// Construct from a string hash (convert to integer).
     Variant(const StringHash& value)    // NOLINT(google-explicit-constructor)
     {
@@ -610,6 +617,14 @@ public:
     {
         SetType(VAR_INT);
         value_.int_ = (int)rhs;
+        return *this;
+    }
+
+    /// Assign from flag set.
+    template <class T>
+    Variant& operator =(FlagSet<T> rhs)
+    {
+        *this = static_cast<typename FlagSet<T>::Integer>(rhs);
         return *this;
     }
 
@@ -1155,6 +1170,9 @@ public:
             return 0;
     }
 
+    /// Return flag set for specified enum type. Floats and doubles are converted.
+    template <class T> FlagSet<T> GetFlagSet() const { return FlagSet<T>(static_cast<typename FlagSet<T>::Integer>(GetInt())); }
+
     /// Return StringHash or zero on type mismatch.
     StringHash GetStringHash() const { return StringHash(GetUInt()); }
 
@@ -1460,6 +1478,13 @@ URHO3D_ADD_VARIANT_TYPE(VAR_RECT, const Rect&, GetRect);
 URHO3D_ADD_VARIANT_TYPE(VAR_INTVECTOR3, const IntVector3&, GetIntVector3);
 URHO3D_ADD_VARIANT_TYPE(VAR_INT64, long long, GetInt64);
 URHO3D_ADD_VARIANT_TYPE(VAR_INT64, unsigned long long, GetUInt64);
+
+template <class T> struct VariantTypeHelper<FlagSet<T>>
+{
+    using ReturnType = FlagSet<T>;
+    static VariantType GetVariantType() { return VAR_INT; }
+    static ReturnType GetConstValue(const Variant& variant) { return variant.GetFlagSet<T>(); }
+};
 
 template <class T> T* CustomVariantValue::GetValuePtr()
 {

@@ -216,7 +216,12 @@ public:
     /// Returns true if specified enum value is set.
     inline bool Test(const Enum value) const
     {
-        Integer flags = (Integer) value;
+        return Test((Integer)value);
+    }
+
+    /// Returns true if specified bits are set.
+    inline bool Test(const Integer flags) const
+    {
         return (value_ & flags) == flags && (flags != 0 || value_ == flags);
     }
 
